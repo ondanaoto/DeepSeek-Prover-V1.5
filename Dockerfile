@@ -16,19 +16,18 @@ RUN curl -s -O https://raw.githubusercontent.com/leanprover/elan/master/elan-ini
     bash elan-init.sh -y && \
     rm -rf elan-init.sh
 
-ENV PATH="$HOME/.elan/bin:$PATH"
-
 # Set default work directory back to project root
 WORKDIR /app
 
 # Copy project codes
-COPY . /app
+COPY ./requirements.txt /app/
+COPY ./mathlib4 /var/mathlib4
 
 RUN pip install packaging
 RUN pip install torch==2.2.1
 RUN pip install -r requirements.txt
 
-WORKDIR /app/mathlib4
+WORKDIR /var/mathlib4
 RUN ~/.elan/bin/lake build
 
 WORKDIR /app
