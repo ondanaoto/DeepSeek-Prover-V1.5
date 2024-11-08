@@ -1,28 +1,36 @@
-FROM pytorch/pytorch:2.2.1-cuda12.1-cudnn8-devel
+FROM nvidia/cuda:12.1.0-cudnn8-devel-ubuntu22.04
 
 # Set environment variables
-WORKDIR /app
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Install required system packages and Python
-RUN apt-get update -y && apt-get install -y \
-    curl \
-    git
+RUN apt-get update && \
+    apt-get install -y python3.10 python3-pip git curl && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN ln -s /usr/bin/python3.10 /usr/bin/python
+
 # Custom Lean 4 installation script without Visual Studio Code
-RUN curl -y https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh
-
-# Copy the requirements.txt file
-COPY requirements.txt /app/
-RUN pip3 install --no-cache-dir -r requirements.txt
-
-# Build Mathlib4 during the image build
-# WORKDIR /app/mathlib4
-# RUN lake exe cache get && lake build
+RUN curl -s -O https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh && \
+    bash elan-init.sh -y && \
+    rm -rf elan-init.sh
 
 # Set default work directory back to project root
 WORKDIR /app
 
-# Expose port if needed (optional)
-# EXPOSE 8080
+# Copy project codes
+COPY ./requirements.txt /app/
+COPY ./mathlib4 /var/mathlib4
 
-CMD ["bash"]
+RUN pip install packaging
+RUN pip install torch==2.2.1
+RUN pip install -r requirements.txt
+
+WORKDIR /var/mathlib4
+RUN ~/.elan/bin/lake build
+
+WORKDIR /app
+
+CMD ["/bin/bash"]
 
