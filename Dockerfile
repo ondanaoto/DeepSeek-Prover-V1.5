@@ -5,7 +5,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Install required system packages and Python
 RUN apt-get update && \
-    apt-get install -y python3.10 python3-pip git curl && \
+    apt-get install -y python3.10 python3-pip git curl psmisc && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
