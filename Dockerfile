@@ -28,6 +28,7 @@ RUN pip install torch==2.2.1
 RUN pip install -r requirements.txt
 
 WORKDIR /var/mathlib4
+RUN ~/.elan/bin/lake exe cache get
 RUN ~/.elan/bin/lake build
 
 WORKDIR /app
