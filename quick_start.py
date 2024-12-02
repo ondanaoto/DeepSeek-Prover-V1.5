@@ -11,7 +11,7 @@ model_name = "deepseek-ai/DeepSeek-Prover-V1.5-RL"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = LLM(model=model_name, max_num_batched_tokens=8192, seed=1, trust_remote_code=True)
 
-lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=1, timeout=300, memory_limit=10, name='verifier')
+lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=1, timeout=300, memory_limit=20, name='verifier')
 
 prompt = r'''Complete the following Lean 4 code:
 
