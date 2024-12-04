@@ -33,8 +33,3 @@ RUN ~/.elan/bin/lake build
 RUN ~/.elan/bin/lake exe graph
 
 ENTRYPOINT [ "./mvgraph.sh" ]
-
-WORKDIR /app
-
-CMD ["/bin/bash"]
-
