@@ -30,6 +30,9 @@ RUN pip install -r requirements.txt
 WORKDIR /var/mathlib4
 RUN ~/.elan/bin/lake exe cache get
 RUN ~/.elan/bin/lake build
+RUN ~/.elan/bin/lake exe graph
+
+ENTRYPOINT [ "./mvgraph.sh" ]
 
 WORKDIR /app
 
