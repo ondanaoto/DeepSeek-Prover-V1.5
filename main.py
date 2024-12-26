@@ -1,24 +1,21 @@
 import re
-import argparse
 
-from transformers import AutoTokenizer
 from vllm import LLM, SamplingParams
 
 from prover.lean.verifier import Lean4ServerScheduler
 from repository import conjecture_repository as crepo
 from repository import proof_repository as prepo
 
-def main(datetime: str):
+def main():
     model_name = "deepseek-ai/DeepSeek-Prover-V1.5-RL"
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = LLM(model=model_name, max_num_batched_tokens=8192, seed=1, trust_remote_code=True)
 
     lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=1, timeout=300, memory_limit=10, name='verifier')
 
     prompt = r'''Complete the following Lean 4 code:
 
-    ```lean4
-    '''
+```lean4
+'''
 
     sampling_params = SamplingParams(
         temperature=1.0,
@@ -27,10 +24,7 @@ def main(datetime: str):
         n=1,
     )
     
-    if datetime == "":
-        conjectures = crepo.fetch_all()
-    else:
-        conjectures = crepo.fetch_by_datetime(datetime)
+    conjectures = crepo.fetch_conjectures(nontrivial_only=True)
 
     for conjecture in conjectures:
 
@@ -55,7 +49,4 @@ def main(datetime: str):
     lean4_scheduler.close()
     
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--datetime", help="datetime of the conjecture", default="")
-    args = parser.parse_args()
-    main(args.datetime)
+    main()
