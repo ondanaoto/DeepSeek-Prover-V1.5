@@ -26,7 +26,7 @@ sampling_params = SamplingParams(
     n=1,
 )
 
-for conjectures in crepo.fetch_all():
+for conjectures in crepo.fetch_conjectures(nontrivial_only=True):
     code_prefix = conjectures
 
     model_inputs = [prompt + code_prefix]
