@@ -31,6 +31,7 @@ def verify_lean4_file(code, lake_path=DEFAULT_LAKE_PATH, lean_workspace=DEFAULT_
         print(message_str)
     start_time = time.time()
     system_messages = ''
+    outputs = None # initialize outputs
     try:
         with tempfile.TemporaryFile(mode='w+', encoding='utf-8') as temp_file:
             temp_file.write(message_str + "\r\n\r\n")
@@ -51,7 +52,11 @@ def verify_lean4_file(code, lake_path=DEFAULT_LAKE_PATH, lean_workspace=DEFAULT_
         }
         result['pass'] = not result['errors']
         result['complete'] = result['pass'] and not result['sorries'] and not any("declaration uses 'sorry'" in warning['data'] or 'failed' in warning['data'] for warning in result['warnings'])
-    except:
+    except Exception as e:
+        system_messages += str(e)
+        if outputs is not None:
+            system_messages += outputs.stdout
+            system_messages += outputs.stderr
         result = {
             "pass": False,
             "complete": False,
@@ -148,8 +153,8 @@ class Lean4ServerScheduler(ProcessScheduler):
 
 
 if __name__ == '__main__':
-    code = open('/var/mathlib4/.lake/packages/REPL/test/aime_1983_p9.code.in').read()
-    lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=1, timeout=300, memory_limit=10, name='verifier')
+    code = open('/var/mathlib4/.lake/packages/REPL/test/aime_1983_p9.in').read()
+    lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=1, timeout=300, memory_limit=20, name='verifier')
     request_id_list = lean4_scheduler.submit_all_request([dict(code=code, ast=True, tactics=True)])
     outputs_list = lean4_scheduler.get_all_request_outputs(request_id_list)
     lean4_scheduler.close()

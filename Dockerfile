@@ -5,7 +5,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Install required system packages and Python
 RUN apt-get update && \
-    apt-get install -y python3.10 python3-pip git curl && \
+    apt-get install -y python3.10 python3-pip git curl psmisc && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -28,9 +28,5 @@ RUN pip install torch==2.2.1
 RUN pip install -r requirements.txt
 
 WORKDIR /var/mathlib4
+RUN ~/.elan/bin/lake exe cache get
 RUN ~/.elan/bin/lake build
-
-WORKDIR /app
-
-CMD ["/bin/bash"]
-
