@@ -26,22 +26,26 @@ sampling_params = SamplingParams(
     n=1,
 )
 
-for conjectures in crepo.fetch_all():
-    code_prefix = conjectures
+id_conjecture_list = crepo.fetch_conjectures(nontrivial_only=True)
 
-    model_inputs = [prompt + code_prefix]
+for conjecture_id, conjecture in id_conjecture_list:
+
+    model_inputs = [prompt + conjecture]
     model_outputs = model.generate(
         model_inputs,
         sampling_params,
         use_tqdm=False,
     )
-    result = prompt + code_prefix + model_outputs[0].outputs[0].text
+    result = prompt + conjecture + model_outputs[0].outputs[0].text
     print(result)
 
     request_id_list = lean4_scheduler.submit_all_request([re.search(r'```lean4\n(.*?)\n```', result, re.DOTALL).group(1)])
     outputs_list = lean4_scheduler.get_all_request_outputs(request_id_list)
     print(outputs_list[0])
-    prepo.save(result[46:], outputs_list[0])
+    prepo.save(result[46:-3], outputs_list[0])
+    if outputs_list[0]['complete']:
+        print('Proof successful!')
+        prepo.write_new_theorems([(conjecture_id, result[46:-3])])
 
 
 # Expected output (verify_time may vary):
