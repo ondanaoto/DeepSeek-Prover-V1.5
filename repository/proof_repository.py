@@ -11,7 +11,7 @@ def save(result: str, output: dict) -> None:
 
 def write_new_theorems(id_theorems: list[tuple[str, str]]) -> None:
     for conjecture_id, theorem in id_theorems:
-        parent_dir = 'LeanLib/LeanLib/A' + conjecture_id.split('_')[0]
+        parent_dir = '/LeanLib/LeanLib/A' + conjecture_id.split('_')[0]
         file_name = '_'.join(conjecture_id.split('_')[1:]) + '.lean'
 
         os.makedirs(parent_dir, exist_ok=True)
