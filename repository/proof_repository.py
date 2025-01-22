@@ -9,11 +9,17 @@ def save(result: str, output: dict) -> None:
             'output': output,
         }) + '\n')
 
-def write_new_theorems(id_theorems: list[tuple[str, str]]) -> None:
-    for conjecture_id, theorem in id_theorems:
-        parent_dir = '/LeanLib/LeanLib/A' + conjecture_id.split('_')[0]
-        file_name = 'A' + '_'.join(conjecture_id.split('_')[1:]) + '.lean'
+def write_new_theorems(id_theorems: list[tuple[str, str, str]]) -> None:
+    for _, input_seed, theorem in id_theorems:
+        parent_dir = _get_save_dir(input_seed)
 
         os.makedirs(parent_dir, exist_ok=True)
-        with open(os.path.join(parent_dir, file_name), 'w') as f:
+        with open(parent_dir, 'w') as f:
             f.write(theorem)
+
+def _get_save_dir(input_seed: str) -> str:
+    input_seed = input_seed.replace('.', '/')
+    if input_seed.startswith('Mathlib'):
+        return '/LeanLib/LeanLib/A0' + input_seed[len('Mathlib'):] + '.lean'
+    else:
+        return '/LeanLib/LeanLib/A' + str(int(input_seed.split('/')[-1][1]) + 1) + '.lean'
