@@ -19,7 +19,7 @@ def write_new_theorems(id_theorems: list[tuple[str, str, str]]) -> None:
 
 def _get_save_dir(input_seed: str) -> str:
     input_seed = input_seed.replace('.', '/')
-    if input_seed.startswith('Mathlib'):
-        return '/LeanLib/LeanLib/A0' + input_seed[len('Mathlib'):] + '.lean'
+    if not input_seed.startswith('Mathlib/A'):
+        return 'mathlib4/Mathlib/A0' + input_seed[len('Mathlib'):] + '.lean'
     else:
-        return '/LeanLib/LeanLib/A' + str(int(input_seed.split('/')[-1][1]) + 1) + '.lean'
+        return 'mathlib4/Mathlib/A' + str(int(input_seed.split('/')[-1][1]) + 1) + '.lean'
