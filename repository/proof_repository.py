@@ -1,4 +1,5 @@
 import os
+import re
 import json
 
 def save(result: str, output: dict) -> None:
@@ -10,16 +11,24 @@ def save(result: str, output: dict) -> None:
         }) + '\n')
 
 def write_new_theorems(id_theorems: list[tuple[str, str, str]]) -> None:
-    for _, input_seed, theorem in id_theorems:
-        parent_dir = _get_save_dir(input_seed)
+    for conjecture_id, input_seed, theorem in id_theorems:
+        id_num = conjecture_id.split('_')[-1]
+        filepath = _get_save_filepath(input_seed, id_num)
+        
+        dirname = os.path.dirname(filepath)
 
-        os.makedirs(parent_dir, exist_ok=True)
-        with open(parent_dir, 'w') as f:
+        if dirname and not os.path.exists(dirname):
+            os.makedirs(dirname)
+
+        with open(filepath, 'w') as f:
             f.write(theorem)
 
-def _get_save_dir(input_seed: str) -> str:
+def _get_save_filepath(input_seed: str, id_num: str) -> str:
     input_seed = input_seed.replace('.', '/')
-    if not input_seed.startswith('Mathlib/A'):
+    if not re.match(r'^Mathlib/A\d+', input_seed):
         return 'mathlib4/Mathlib/A0' + input_seed[len('Mathlib'):] + '.lean'
     else:
-        return 'mathlib4/Mathlib/A' + str(int(input_seed.split('/')[-1][1]) + 1) + '.lean'
+        num = int(re.search(r'A(\d+)', input_seed).group(1)) + 1
+        num_str = str(num)
+        return 'mathlib4/Mathlib/A' + num_str + input_seed[len('Mathlib/A' + num_str):] + id_num + '.lean'
+

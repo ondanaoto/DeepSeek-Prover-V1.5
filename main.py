@@ -25,7 +25,7 @@ def main():
     )
 
     id_conjecture_list = crepo.fetch_conjecture_datas(nontrivial_only=True)
-
+    print(f"{len(id_conjecture_list)} conjectures fetched")
     for conjecture_id, input_seed, conjecture in id_conjecture_list:
 
         model_inputs = [prompt + conjecture]
@@ -36,6 +36,9 @@ def main():
         )
         result = prompt + conjecture + model_outputs[0].outputs[0].text
         print(result)
+        if not result.endswith('\n```'):
+            print('Proof failed!')
+            continue
 
         request_id_list = lean4_scheduler.submit_all_request([re.search(r'```lean4\n(.*?)\n```', result, re.DOTALL).group(1)])
         outputs_list = lean4_scheduler.get_all_request_outputs(request_id_list)

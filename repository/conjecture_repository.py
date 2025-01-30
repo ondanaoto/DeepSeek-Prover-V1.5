@@ -11,6 +11,6 @@ def fetch_conjecture_datas(
 
     conjectures = [c for c in conjectures if c["grammatical"]]
     if nontrivial_only:
-        conjectures = [c for c in conjectures if not (c["already_exists"] or c["aesop_provable"]) ]
+        conjectures = [c for c in conjectures if not c["already_exists"]]
 
     return [(c["conjecture_id"], c["input"], c["conjecture"]) for c in conjectures]
