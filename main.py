@@ -1,4 +1,5 @@
 import re
+import argparse
 
 from vllm import LLM, SamplingParams
 
@@ -6,7 +7,7 @@ from prover.lean.verifier import Lean4ServerScheduler
 from repository import conjecture_repository as crepo
 from repository import proof_repository as prepo
 
-def main():
+def main(start_date: str = None):
     model_name = "deepseek-ai/DeepSeek-Prover-V1.5-RL"
     model = LLM(model=model_name, max_num_batched_tokens=8192, seed=1, trust_remote_code=True)
 
@@ -24,7 +25,7 @@ def main():
         n=1,
     )
 
-    id_conjecture_list = crepo.fetch_conjecture_datas(nontrivial_only=True)
+    id_conjecture_list = crepo.fetch_conjecture_datas(nontrivial_only=True, start_date=start_date)
     print(f"{len(id_conjecture_list)} conjectures fetched")
     for conjecture_id, input_seed, conjecture in id_conjecture_list:
 
@@ -55,4 +56,9 @@ def main():
     lean4_scheduler.close()
 
 if __name__ == "__main__":
-    main()
+    args = argparse.ArgumentParser()
+    args.add_argument("--start_date", type=str, default=None, help="start date of conjectures to be fetched. Format: %Y%m%d_%H%M%S")
+    
+    args = args.parse_args()
+    start_date = args.start_date
+    main(start_date)
