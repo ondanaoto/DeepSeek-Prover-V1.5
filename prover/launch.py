@@ -14,7 +14,7 @@ from prover.utils import get_datetime, load_config, AttrDict
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str)
-    parser.add_argument("--log_dir", type=str, default=f'logs/{get_datetime()}')
+    parser.add_argument("--log_dir", type=str, default=f'/data/logs/{get_datetime()}')
     parser.add_argument("--node_rank", type=int, default=0)
     parser.add_argument("--world_size", type=int, default=1)
     args = parser.parse_args()
