@@ -4,8 +4,6 @@ from transformers import AutoTokenizer
 from vllm import LLM, SamplingParams
 
 from prover.lean.verifier import Lean4ServerScheduler
-from repository import conjecture_repository as crepo
-from repository import proof_repository as prepo
 
 
 model_name = "deepseek-ai/DeepSeek-Prover-V1.5-RL"
