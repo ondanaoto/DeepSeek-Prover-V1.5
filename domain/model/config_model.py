@@ -28,17 +28,13 @@ class ConfigV2:
         top_p=0.95,
         # algorithm
         n_search_procs=64,
-        sampler=None,
         algorithm_kind=AlgorithmKind.SAMPLING,
         sample_num=128,
         log_interval=32
     ):
         # dataset
         self.data_path = data_path
-        if data_split is None:
-            self.data_split = []
-        else:
-            self.data_split = data_split
+        self.data_split = data_split
         self.data_repeat = data_repeat
         # verifier
         self.lean_max_concurrent_requests = lean_max_concurrent_requests
@@ -53,8 +49,8 @@ class ConfigV2:
         self.top_p = top_p
         # algorithm
         self.n_search_procs = n_search_procs
-        self._sampler = sampler
-        self.algorithm_kind = algorithm_kind
+        self._sampler = None
+        self.algorithm_kind = algorithm_kind.value
         self.sample_num = sample_num
         self.log_interval = log_interval
         self.sampler = dict(
@@ -66,8 +62,8 @@ class ConfigV2:
     @property
     def algorithm(self):
         registry = {
-            AlgorithmKind.SAMPLING: Sampling,
-            AlgorithmKind.RMAX_TS: RMaxTS
+            "Sampling": Sampling,
+            "RMaxTS": RMaxTS,
         }
         return registry[self.algorithm_kind]
     

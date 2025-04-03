@@ -1,9 +1,12 @@
+import json
 import os
-import asyncio
+import subprocess
+# ★ 非同期系のimportは削除
+# import asyncio
+# from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Dict
 
 from api.schema import (
     ProveRequest, 
@@ -28,51 +31,22 @@ AIMATH_PORT = os.environ['AIMATH_PORT']
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[f"http://app:{AIMATH_PORT}"],
+    allow_origins=["*", f"http://app:{AIMATH_PORT}"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Store running prove tasks
-running_tasks: Dict[str, str] = {}
+running_tasks = {}
 
 def convert_algorithm_kind(algorithm_kind_str: str) -> AlgorithmKind:
     """Convert string to AlgorithmKind enum"""
-    # With Pydantic Literal validation, we should only receive valid values
-    # But we'll still handle the conversion explicitly for robustness
     if algorithm_kind_str == 'Sampling':
         return AlgorithmKind.SAMPLING
     elif algorithm_kind_str == 'RMaxTS':
         return AlgorithmKind.RMAX_TS
-    else:
-        # This should never happen due to Pydantic validation
-        # but we'll default to Sampling if it somehow does
-        return AlgorithmKind.SAMPLING
-
-async def run_prove_task(
-    config: ConfigV2,
-    log_dir: str,
-    node_rank: int,
-    world_size: int,
-    task_id: str
-):
-    """Background task to run the prove process"""
-    try:
-        # Create the log directory if it doesn't exist
-        os.makedirs(log_dir, exist_ok=True)
-        
-        # Run the prove process in a separate thread to avoid blocking the event loop
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, lambda: _run_prove_process(
-            config=config,
-            log_dir=log_dir,
-            node_rank=node_rank,
-            world_size=world_size,
-            task_id=task_id
-        ))
-    except Exception as e:
-        running_tasks[task_id] = f"failed: {str(e)}"
+    raise ValueError("unknown algorithm kind")
 
 def _run_prove_process(
     config: ConfigV2,
@@ -81,28 +55,81 @@ def _run_prove_process(
     world_size: int,
     task_id: str
 ):
-    """Execute the prove process in a separate thread"""
+    """
+    同期的にproveを実行する処理。
+    以前は別スレッドで実行していたが、ここではシンプルに直列で処理する。
+    """
     try:
-        prover = Prover()
-        prover.prove(
-            cfg=config,
-            log_dir=log_dir,
-            node_rank=node_rank,
-            world_size=world_size
+        # 事前にディレクトリ作成
+        os.makedirs(log_dir, exist_ok=True)
+        
+        # ConfigV2をJSON文字列に変換
+        config_dict = {
+            "data_path": config.data_path,
+            "data_split": config.data_split,
+            "data_repeat": config.data_repeat,
+            "lean_max_concurrent_requests": config.lean_max_concurrent_requests,
+            "lean_memory_limit": config.lean_memory_limit,
+            "lean_timeout": config.lean_timeout,
+            "batch_size": config.batch_size,
+            "model_path": config.model_path,
+            "mode": config.mode,
+            "temperature": config.temperature,
+            "max_tokens": config.max_tokens,
+            "top_p": config.top_p,
+            "n_search_procs": config.n_search_procs,
+            "algorithm_kind": config.algorithm_kind,  # enumの値を取得
+            "sample_num": config.sample_num,
+            "log_interval": config.log_interval
+        }
+        
+        # 一時的なJSONファイルに設定を保存
+        config_file = f"/tmp/config_{task_id}.json"
+        with open(config_file, "w") as f:
+            json.dump(config_dict, f)
+        
+        # 外部プロセスとしてprove_wrapper.pyを実行（同期的に待機）
+        cmd = [
+            "python", "usecase/prove_wrapper.py",  # prove_wrapper.pyへのパスを適切に設定
+            "--config_file", config_file,
+            "--log_dir", log_dir,
+            "--node_rank", str(node_rank),
+            "--world_size", str(world_size),
+            "--task_id", task_id
+        ]
+        
+        # 同期的に実行して完了を待つ
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True
         )
+        
+        # 不要になった設定ファイルを削除
+        os.remove(config_file)
+        
+        # エラーチェック
+        if result.returncode != 0:
+            error_message = result.stderr or "Unknown error occurred"
+            running_tasks[task_id] = f"failed: {error_message}"
+            raise RuntimeError(error_message)
+            
         running_tasks[task_id] = "completed"
+        return True
+
     except Exception as e:
         running_tasks[task_id] = f"failed: {str(e)}"
+        raise
 
 @app.post("/api/prove", response_model=ProveResponse)
-async def prove(request: ProveRequest, background_tasks: BackgroundTasks):
+def prove(request: ProveRequest):
     """
-    Start a proof generation task
+    Start a proof generation task (同期実行)
+    重い処理は終わるまでHTTPレスポンスを返しません。
     """
     # Create log directory if not exists
-    log_dir = '/data/logs'
-    
-    # os.makedirs(log_dir, exist_ok=True)
+    exp_datetime = get_datetime()
+    log_dir = f'/data/logs/{exp_datetime}'
     
     # Create config
     config = ConfigV2(
@@ -126,30 +153,37 @@ async def prove(request: ProveRequest, background_tasks: BackgroundTasks):
     
     # Generate task ID
     task_id = f"prove_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-    
-    # Start background task
-    background_tasks.add_task(
-        run_prove_task,
-        config=config,
-        log_dir=log_dir,
-        node_rank=request.node_rank,
-        world_size=request.world_size,
-        task_id=task_id
-    )
-    
-    # Store task status
+
+    # ステータスを "running" にしておく
     running_tasks[task_id] = "running"
+
+    # ここで同期的に prove 処理を実行する
+    try:
+        _run_prove_process(
+            config=config,
+            log_dir=log_dir,
+            node_rank=request.node_rank,
+            world_size=request.world_size,
+            task_id=task_id
+        )
+    except Exception as e:
+        # 失敗時はHTTPExceptionに変換
+        # running_tasksにはすでに "failed: ..." が入っている想定
+        raise HTTPException(status_code=500, detail=str(e))
     
+    # 成功したので "completed" がセットされている
     return ProveResponse(
-        status="started",
-        log_dir=log_dir,
+        status="completed",
+        exp_id=exp_datetime,
         task_id=task_id
     )
 
 @app.get("/api/prove/status/{task_id}")
-async def get_prove_status(task_id: str):
+def get_prove_status(task_id: str):
     """
-    Get the status of a running prove task
+    Get the status of a prove task
+    同期呼び出しのため、基本的にはリクエスト完了時点で終わっているはずだが
+    状態管理のサンプルとして残している
     """
     if task_id not in running_tasks:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -157,13 +191,13 @@ async def get_prove_status(task_id: str):
     return {"status": running_tasks[task_id]}
 
 @app.post("/api/read_proof", response_model=ProofReadResponse)
-async def read_proof(request: ReadProofRequest):
+def read_proof(request: ReadProofRequest):
     """
-    Read proof logs from a directory
+    Read proof logs from a directory (同期)
     """
     try:
         proof_reader = ProofReader()
-        data = proof_reader.read(request.log_dir)
+        data = proof_reader.read(request.exp_id)
         
         # Convert domain models to Pydantic models
         result_data = {}
@@ -224,8 +258,8 @@ async def read_proof(request: ReadProofRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/health")
-async def health_check():
+def health_check():
     """
-    Health check endpoint
+    Health check endpoint (同期)
     """
     return {"status": "healthy"}

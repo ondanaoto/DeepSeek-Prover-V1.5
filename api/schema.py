@@ -4,7 +4,7 @@ from typing import Literal
 # Request models
 class ProveRequest(BaseModel):
     data_path: str = 'datasets/minif2f.jsonl'
-    data_split: list[str] = Field(default=[])
+    data_split: list[str] | None = Field(default=['valid'])
     data_repeat: int = 1
     lean_max_concurrent_requests: int = 64
     lean_memory_limit: int = 10
@@ -23,7 +23,7 @@ class ProveRequest(BaseModel):
     world_size: int = 1
 
 class ReadProofRequest(BaseModel):
-    log_dir: str
+    exp_id: str
 
 # Response models
 class ResultModel(BaseModel):
@@ -51,5 +51,5 @@ class ProofReadResponse(BaseModel):
 
 class ProveResponse(BaseModel):
     status: str
-    log_dir: str
+    exp_id: str
     task_id: str

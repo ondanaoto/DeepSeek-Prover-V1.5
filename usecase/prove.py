@@ -21,6 +21,7 @@ class Prover:
         ngpus = torch.cuda.device_count()
         assert ngpus >= 1
         
+        print("dataloader")
         # create data loader
         data_loader = DataLoader(
             data_path=cfg.data_path,
@@ -31,6 +32,7 @@ class Prover:
             log_dir=log_dir,
         )
 
+        print("lean4serverscheduler")
         # build Lean verifier
         verifier_scheduler = Lean4ServerScheduler(
             max_concurrent_requests=cfg.lean_max_concurrent_requests,
@@ -39,6 +41,7 @@ class Prover:
             name='verifier',
         )
 
+        print("processscheduler")
         # load LLM models on gpus
         generator_scheduler = ProcessScheduler(batch_size=cfg.batch_size, name='generator')
         llm_processes = [
@@ -54,6 +57,7 @@ class Prover:
             for local_rank in range(ngpus)
         ]
 
+        print("scheduler")
         # create a unified scheduler interface
         scheduler = Scheduler(dict(
             verifier=verifier_scheduler,
