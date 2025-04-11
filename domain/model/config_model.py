@@ -8,6 +8,15 @@ class AlgorithmKind(Enum):
     SAMPLING = 'Sampling'
     RMAX_TS = 'RMaxTS'
 
+    @classmethod
+    def from_string(cls, kind: str):
+        if kind == 'Sampling':
+            return cls.SAMPLING
+        elif kind == 'RMaxTS':
+            return cls.RMAX_TS
+        else:
+            raise ValueError(f"Unknown algorithm kind: {kind}")
+
 
 class ConfigV2:
     def __init__(
@@ -66,7 +75,7 @@ class ConfigV2:
             "RMaxTS": RMaxTS,
         }
         return registry[self.algorithm_kind]
-    
+
     @property
     def model_args(self):
         return AttrDict(
