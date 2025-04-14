@@ -67,7 +67,7 @@ def main(
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description="Prover CLI")
-    argparser.add_argument("--log_dir", type=str, default=f"logs/{datetime.now()}", help="Directory to save logs")
+    argparser.add_argument("--log_dir", type=str, default=f"logs/{datetime.now().strftime("%Y%m%d_%H%M%S")}", help="Directory to save logs")
     argparser.add_argument("--node_rank", type=int, default=0)
     argparser.add_argument("--world_size", type=int, default=1)
     argparser.add_argument("--data_path", type=str, default="/data/nontrivial_conjectures.jsonl", help="Path to the data file")
